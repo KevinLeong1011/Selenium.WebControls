@@ -1,0 +1,24 @@
+﻿{
+   "Normal": {
+      "Template": "",
+      "SheetName": "",
+      "HeadRowIndex": 1,
+      "CaseName": "",
+      "Precondition": "",
+      "Steps": "",
+      "Expectation": ""
+   },
+   "Agile": {
+      "Template": "",
+      "SheetName": "",
+      "HeadRowIndex": 1,
+      "Case": "",
+      "CaseDesc": ""
+   },
+   "TestPoint": {
+      "Template": "",
+      "SheetName": "",
+      "HeadRowIndex": 1,
+      "CasePoint": ""
+   }
+}

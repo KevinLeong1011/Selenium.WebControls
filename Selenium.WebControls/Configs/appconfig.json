@@ -1,0 +1,114 @@
+﻿{
+   "AppName": "",
+   "DriverServiceLocation": "Drivers",
+   "ActiveDriverConfig": "Chrome",
+   "ActiveWebsiteConfig": "Default",
+   "ActiveCaseGeneration": "敏捷用例",
+   "WebsiteConfigs": {
+      "Default": {
+         "Name": "Default",
+         "BaseUrl": "http://127.0.0.1/"
+      },
+      "ST": {
+         "Name": "ST",
+         "BaseUrl": ""
+      },
+      "DEV": {
+         "Name": "DEV",
+         "BaseUrl": ""
+      },
+      "UAT": {
+         "Name": "UAT",
+         "BaseUrl": ""
+      }
+   },
+   "DriverConfigs": {
+      "Chrome": {
+         "DriverTypeName": "OpenQA.Selenium.Chrome.ChromeDriver",
+         "AssemblyName": "WebDriver",
+         "BrowserValue": "Chrome",
+         "RemoteCapabilities": "chrome"
+      },
+
+      "IE": {
+         "DriverTypeName": "OpenQA.Selenium.IE.InternetExplorerDriver",
+         "AssemblyName": "WebDriver",
+         "BrowserValue": "IE",
+         "RemoteCapabilities": "internet explorer"
+      },
+
+      "Edge": {
+         "DriverTypeName": "OpenQA.Selenium.Edge.EdgeDriver",
+         "AssemblyName": "WebDriver",
+         "BrowserValue": "Edge",
+         "RemoteCapabilities": "MicrosoftEdge"
+      },
+
+      "Firefox": {
+         "DriverTypeName": "OpenQA.Selenium.Firefox.ReleaseFirefoxWebDriver",
+         "AssemblyName": "WebDriver.Firefox.Tests",
+         "BrowserValue": "Firefox",
+         "RemoteCapabilities": "firefox"
+      },
+
+      "FirefoxNightly": {
+         "DriverTypeName": "OpenQA.Selenium.Firefox.NightlyFirefoxWebDriver",
+         "AssemblyName": "WebDriver.Firefox.Tests",
+         "BrowserValue": "Firefox",
+         "RemoteCapabilities": "firefox"
+      },
+
+      "FirefoxLegacy": {
+         "DriverTypeName": "OpenQA.Selenium.Firefox.LegacyFirefoxWebDriver",
+         "AssemblyName": "WebDriver.Firefox.Tests",
+         "BrowserValue": "Firefox",
+         "RemoteCapabilities": "firefox"
+      },
+
+      "Safari": {
+         "DriverTypeName": "OpenQA.Selenium.Safari.SafariDriver",
+         "AssemblyName": "WebDriver",
+         "BrowserValue": "Safari",
+         "RemoteCapabilities": "safari"
+      },
+
+      "Remote": {
+         "DriverTypeName": "OpenQA.Selenium.Remote.TestInternetExplorerRemoteWebDriver",
+         "AssemblyName": "WebDriver.Remote.Tests",
+         "BrowserValue": "Remote",
+         "RemoteCapabilities": "internet explorer",
+         "AutoStartRemoteServer": true
+      }
+   },
+   "CaseGenerations": {
+      "传统用例": {
+         "name": "传统用例",
+         "GenerationTypeName": "Selenium.WebControls.Case.CaseGenerator",
+         "AssemblyName": "Selenium.WebControls.Case",
+         "DateTimeFormat": "yyyy-MM-dd"
+      },
+      "敏捷用例": {
+         "name": "敏捷用例",
+         "GenerationTypeName": "Selenium.WebControls.Case.CaseGenerator",
+         "AssemblyName": "Selenium.WebControls.Case",
+         "DateTimeFormat": "yyyy-MM-dd"
+      },
+      "测试点": {
+         "name": "测试点",
+         "GenerationTypeName": "Selenium.WebControls.Case.CaseGenerator",
+         "AssemblyName": "Selenium.WebControls.Case",
+         "DateTimeFormat": "yyyy-MM-dd"
+      }
+   },
+   "ExecutionConfig": {
+      "Auto": true,
+      "ResultLocation": "Results",
+      "CommandDescConfig": "CommandDescription-cn.json",
+      "AllowedPerformanceTimout": 15,
+      "DefaultWaitingTime": 60,
+      "TemplateConfig": {
+         "Location": "Templates",
+         "MarkPrefix": "tpl"
+      }
+   }
+}

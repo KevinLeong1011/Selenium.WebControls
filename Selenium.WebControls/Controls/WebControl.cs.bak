@@ -1,0 +1,907 @@
+﻿/* ***********************************************
+ * Author : Kevin
+ * Function : 
+ * Created : 2018/3/26 23:43:43
+ * ***********************************************/
+using HtmlAgilityPack;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Interactions;
+using Selenium.WebControls.Commands;
+using Selenium.WebControls.Environments;
+using Selenium.WebControls.Extensions;
+using Selenium.WebControls.Tracking;
+using Selenium.WebControls.Utils;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Text.RegularExpressions;
+
+namespace Selenium.WebControls.Controls
+{
+    /// <summary>
+    /// 控件类
+    /// </summary>
+    public class WebControl : WebControl<WebControl>
+    {
+        internal WebControl(WebSelenium selenium) :
+            base(selenium)
+        {
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public class WebControl<T>
+        where T : WebControl<T>
+    {
+        #region Constructors
+
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="selenium"></param>
+        protected WebControl(WebSelenium selenium)
+        {
+            Selenium = selenium;
+            Locators = new List<By>();
+            Marks = new List<Mark>()
+            {
+                new Mark { Multiple = false, Name = "item" },
+                new Mark { Multiple = true, Name = "items" }
+            };
+        }
+
+        #endregion Constructors
+
+        #region Attributes
+
+        /// <summary>
+        /// 控件名称
+        /// </summary>
+        public string Name { get; }
+
+        /// <summary>
+        /// 控件定位值
+        /// </summary>
+        public List<By> Locators { get; private set; }
+
+        /// <summary>
+        /// <see cref="WebSelenium"/>对象
+        /// </summary>
+        protected WebSelenium Selenium { get; private set; }
+
+        /// <summary>
+        /// 解析模板文件得到的<see cref="IWebElement"/>字典
+        /// </summary>
+        protected Dictionary<string, WebElement> Elements = new Dictionary<string, WebElement>();
+
+        protected IAssert Assert => DataFactory.ResolveAssert<IAssert>();
+
+        protected List<Mark> Marks { get; private set; }
+
+        #endregion Attributes
+
+        #region Public Methods
+
+        /// <summary>
+        /// 从Html内容中解析控件
+        /// </summary>
+        /// <param name="html"></param>
+        public void ParseFromHtml(string html)
+        {
+            HtmlDocument doc = new HtmlDocument();
+            doc.LoadHtml(html);
+            HtmlNode root = doc.DocumentNode.FirstChild;
+            if (!string.IsNullOrWhiteSpace(root.Id))
+            {
+                Locators.Add(By.Id(root.Id));
+            }
+            else if (!root.IsW3cNode())
+            {
+                Locators.Add(By.TagName(root.Name));
+            }
+            foreach (Mark mark in Marks)
+            {
+                HtmlNodeCollection nodes = root.SelectNodes($"//*[@{EnvManager.MarkPrefix}-{mark.Name}]");
+                if (nodes == null) continue;
+                foreach (HtmlNode node in nodes)
+                {
+                    WebElement ele = new WebElement();
+                    ele.MarkName = mark.Name;
+                    List<By> locators = node.GetLocators();
+                    string name = mark.Name;
+                    if (node.Attributes.Contains($"{EnvManager.MarkPrefix}-{mark.Name}"))
+                    {
+                        string value = node.Attributes[$"{EnvManager.MarkPrefix}-{mark.Name}"].Value;
+                        ele.MarkValue = value;
+                        if (mark.Name == "item" || mark.Name == "items")
+                        {
+                            ele.MarkName = value;
+                        }
+                        if (!string.IsNullOrWhiteSpace(value)) name = value;
+                        if (mark.Multiple)
+                        {
+                            locators = node.GetClusterLocators();
+                        }
+                    }
+                    ele.Locators = locators;
+                    Elements.Add(ele.MarkName, ele);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取元素值或文本
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public string Value(string name)
+        {
+            AssertContext.Current.Command += "Value";
+            return Item(name).GetValue();
+        }
+
+        /// <summary>
+        /// 获取元素值或文本中包含的数值
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public double Number(string name)
+        {
+            AssertContext.Current.Parameters.Add(name);
+            double[] numbers = Item(name).GetValue().GetNumbers();
+            if (numbers.Length == 0)
+            {
+                throw new Exception("");
+            }
+            return numbers[0];
+        }
+
+        /// <summary>
+        /// 获取指定名称的元素个数
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public int Count(string name)
+        {
+            AssertContext.Current.Parameters.Add(name);
+            return Items(name).Count;
+        }
+
+        /// <summary>
+        /// 将子元素作为一个WebControl来处理
+        /// </summary>
+        /// <typeparam name="TControl"></typeparam>
+        /// <param name="name"></param>
+        /// <param name="action"></param>
+        /// <returns></returns>
+        public T Handle<TControl>(string name, Action<TControl> action)
+            where TControl : WebControl<TControl>
+        {
+            IWebElement element = Item(name);
+            string html = element.GetAttribute("outerHTML");
+            TControl control = Activator.CreateInstance(typeof(TControl), Selenium) as TControl;
+            control.ParseFromHtml(html);
+            control.Locators.AddRange(Elements[name].Locators);
+            action?.Invoke(control);
+            return this as T;
+        }
+
+        /// <summary>
+        /// 对模板中的元素使用指定的模板来处理
+        /// </summary>
+        /// <typeparam name="TControl"></typeparam>
+        /// <param name="name"></param>
+        /// <param name="tplName"></param>
+        /// <param name="action"></param>
+        /// <returns></returns>
+        public TControl Handle<TControl>(string name, string tplName, Action<TControl> action)
+            where TControl : WebControl<TControl>
+        {
+            IWebElement element = Item(name);
+            string filePath = EnvManager.FindTemplateFile(tplName);
+            string html = File.ReadAllText(filePath);
+            TControl control = Activator.CreateInstance(typeof(TControl), Selenium) as TControl;
+            control.ParseFromHtml(html);
+            control.Locators.AddRange(Elements[name].Locators);
+            action?.Invoke(control);
+            return control;
+        }
+
+        /// <summary>
+        /// 执行测试行为
+        /// </summary>
+        /// <param name="description">行为描述</param>
+        /// <param name="action"></param>
+        /// <returns></returns>
+        public T DoAction(string description, Action<T> action)
+        {
+            T @this = this as T;
+            Tracker.Log(TrackTag.Action, description);
+            if (EnvManager.Auto)
+            {
+                action?.Invoke(@this);
+            }
+            return @this;
+        }
+
+        /// <summary>
+        /// 校验
+        /// </summary>
+        /// <param name="description">校验描述</param>
+        /// <param name="check">校验行为</param>
+        /// <returns></returns>
+        public T Check(string description, Action<T> check)
+        {
+            T @this = this as T;
+            Tracker.Log(TrackTag.Assert, description);
+            if (EnvManager.Auto)
+            {
+                check?.Invoke(@this);
+            }
+            return @this;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="action"></param>
+        public virtual void ForeachElement(string name, Action<IWebElement> action)
+        {
+            foreach (IWebElement element in Items(name))
+            {
+                action?.Invoke(element);
+            }
+        }
+
+        /// <summary>
+        /// 获取用于定位元素的<see cref="By"/>列表
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public virtual List<By> GetLocators(string name)
+        {
+            ThrowIfMarkNotFound(name);
+            return Elements[name].Locators;
+        }
+
+        /// <summary>
+        /// 定位并获取元素
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public virtual IWebElement Item(string name)
+        {
+            ThrowIfMarkNotFound(name);
+            return GetSolutionLocator().LocateElement(Elements[name].Locators);
+        }
+
+        /// <summary>
+        /// 定位并获取元素
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public virtual ReadOnlyCollection<IWebElement> Items(string name)
+        {
+            ThrowIfMarkNotFound(name);
+            return GetSolutionLocator().LocateElements(Elements[name].Locators);
+        }
+
+        /// <summary>
+        /// 点击一个或多个元素
+        /// </summary>
+        /// <param name="names"></param>
+        /// <returns></returns>
+        public virtual T Click(params string[] names)
+        {
+            TrackAction("Click", string.Join(", ", names));
+            IfAuto(() =>
+            {
+                foreach (string name in names)
+                {
+                    Item(name).Click();
+                }
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 右键元素
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public virtual T RightClick(string name)
+        {
+            TrackAction("Click", name);
+            IfAuto(() =>
+            {
+                new Actions(Selenium.Driver).ContextClick(Item(name));
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 点击指定名称的元素集中包含相应内容的元素
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="kws"></param>
+        /// <returns></returns>
+        public T ClickWhichByText(string name, params string[] kws)
+        {
+            TrackAction("ClickWhichByText", name, kws);
+            IfAuto(() =>
+            {
+                var elements = Items(name);
+                foreach (var element in elements)
+                {
+                    if (element.HasContent(kws))
+                    {
+                        element.Click();
+                    }
+                }
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 双击一个或多个元素
+        /// </summary>
+        /// <param name="names"></param>
+        /// <returns></returns>
+        public virtual T DoubleClick(params string[] names)
+        {
+            TrackAction("DoubleClick", string.Join(", ", names));
+            IfAuto(() =>
+            {
+                foreach (string name in names)
+                {
+                    ThrowIfMarkNotFound(name);
+                    Item(name).DoubleClick();
+                }
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 向指定名称的控件输入值
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
+        /// <param name="append"></param>
+        /// <returns></returns>
+        public virtual T Input(string name, string value, bool append = false)
+        {
+            TrackAction("Input", name, value);
+            IfAuto(() =>
+            {
+                var element = Item(name);
+                if (!append) element.Clear();
+                element.SendKeys(value);
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 清空输入框
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public virtual T ClearValue(string name)
+        {
+            TrackAction("ClearValue", name);
+            IfAuto(() => Item(name).Clear());
+            return this as T;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sourceName"></param>
+        /// <param name="controlName"></param>
+        /// <param name="targetName"></param>
+        /// <returns></returns>
+        public T DragDropToAnotherControl(string sourceName, string controlName, string targetName)
+        {
+            TrackAction("DragDropToAnotherControl", sourceName, controlName, targetName);
+            IfAuto(() =>
+            {
+                IWebElement source = Item(sourceName);
+                IWebElement target = Selenium.Handle<WebControl>(controlName).Item(targetName);
+                new Actions(Selenium.Driver).DragAndDrop(source, target);
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 拖放元素
+        /// </summary>
+        /// <param name="sourceName"></param>
+        /// <param name="targetName"></param>
+        /// <returns></returns>
+        public virtual T DragDrop(string sourceName, string targetName)
+        {
+            TrackAction("DragDrop", sourceName, targetName);
+            IfAuto(() =>
+            {
+                IWebElement source = Item(sourceName);
+                IWebElement target = Item(targetName);
+                new Actions(Selenium.Driver).DragAndDrop(source, target);
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 按照偏移量拖放元素
+        /// </summary>
+        /// <param name="sourceName"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
+        public virtual T DragDropToOffset(string sourceName, int x, int y)
+        {
+            TrackAction("DragDropByLocation", sourceName, x, y);
+            IfAuto(() =>
+            {
+                IWebElement source = Item(sourceName);
+                new Actions(Selenium.Driver).DragAndDropToOffset(source, x, y);
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 获取元素值
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public virtual string GetValue(string name)
+        {
+            ThrowIfMarkNotFound(name);
+            return GetSolutionLocator().LocateElement(Elements[name].Locators).GetValue();
+        }
+
+        #region Assert
+
+        public virtual T AssertThat<TData>(TData actual, Func<TData, bool> validate)
+        {
+            AssertContext.Current = new AssertContext();
+            if (!validate(actual))
+            {
+                Assert.Fail(AssertContext.Current.Message);
+            }
+            return this as T;
+        }
+
+        public virtual T AssertThat<TData>(Func<TData> getter, Func<TData, bool> validate)
+        {
+            AssertContext.Current = new AssertContext();
+            if (!validate(getter()))
+            {
+                Assert.Fail(AssertContext.Current.Message);
+            }
+            return this as T;
+        }
+
+        public virtual T AssertThat<TData>(Func<T, TData> getter, Func<TData, bool> validate)
+        {
+            AssertContext.Current = new AssertContext();
+            if (!validate(getter(this as T)))
+            {
+                Assert.Fail(AssertContext.Current.Message);
+            }
+            return this as T;
+        }
+
+        /// <summary>
+        /// 对元素的文本或值进行等于断言
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
+        /// <param name="ignoreCase"></param>
+        /// <returns></returns>
+        public virtual T AssertValueEqual(string name, string value, bool ignoreCase = true)
+        {
+            TrackAssertion("AssertValueEqual", name, value);
+            IfAuto(() =>
+            {
+                string elementValue = Item(name).GetValue();
+                Assert.AreEqual(elementValue, value, ignoreCase);
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        ///  对元素的文本或值进行不等于断言
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
+        /// <param name="ignoreCase"></param>
+        /// <returns></returns>
+        public virtual T AssertValueNotEqual(string name, string value, bool ignoreCase = true)
+        {
+            TrackAssertion("AssertValueNotEqual", name, value);
+            IfAuto(() =>
+            {
+                string elementValue = Item(name).GetValue();
+                Assert.AreNotEqual(elementValue, value, ignoreCase);
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 对元素和其他控件元素进行值或文本的一致性断言
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="control"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
+        public virtual T AssertValueAccord(string name, string control, string target)
+        {
+            TrackAssertion("AssertValueAccord", name, target);
+            IfAuto(() =>
+            {
+                string elementValue = Item(name).GetValue();
+                string anotherValue = Selenium.Handle<WebControl>(control).GetValue(target);
+                Assert.AreEqual(elementValue, anotherValue, true);
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 对元素和其他控件元素进行值或文本的一致性断言
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="control"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
+        public virtual T AssertValueNotAccord(string name, string control, string target)
+        {
+            TrackAssertion("AssertValueNotAccord", name, target);
+            IfAuto(() =>
+            {
+                string elementValue = Item(name).GetValue();
+                string anotherValue = Selenium.Handle<WebControl>(control).GetValue(target);
+                Assert.AreEqual(elementValue, anotherValue, true);
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 断言指定名称的元素可见
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public virtual T AssertVisible(string name)
+        {
+            TrackAssertion("AssertVisible", name);
+            IfAuto(() =>
+            {
+                bool visible = Item(name).Displayed;
+                Assert.IsTrue(visible);
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 断言指定名称的元素不可见
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public virtual T AssertInvisible(string name)
+        {
+            TrackAssertion("AssertInvisible", name);
+            IfAuto(() =>
+            {
+                bool visible = Item(name).Displayed;
+                Assert.IsFalse(visible);
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 断言指定名称的元素可编辑
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public virtual T AssertEditable(string name)
+        {
+            TrackAssertion("AssertEditable", name);
+            IfAuto(() =>
+            {
+                bool editable = Item(name).Editable();
+                Assert.IsTrue(editable);
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 断言指定名称的元素不可操作
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        [Obsolete]
+        public virtual T AssertDisable(string name)
+        {
+            TrackAssertion("AssertDisable", name);
+            IfAuto(() =>
+            {
+                bool disabled = Item(name).Disabled();
+                Assert.IsTrue(disabled);
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 对元素中包含的数值进行最大值断言
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="max"></param>
+        /// <returns></returns>
+        [Obsolete]
+        public virtual T AssertAtMost(string name, double max)
+        {
+            TrackAssertion("AssertAtMost", name);
+            IfAuto(() =>
+            {
+                double[] values = GetValue(name).GetNumbers();
+                if (values.Length == 0) throw new Exception($"The element value does not contain numbers: {name}");
+                Assert.IsTrue(values[0] <= max);
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 对元素中包含的数值进行最小值断言
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="min"></param>
+        /// <returns></returns> 
+        [Obsolete]
+        public virtual T AssertAtLeast(string name, double min)
+        {
+            TrackAssertion("AssertAtLeast", name);
+            IfAuto(() =>
+            {
+                double[] values = GetValue(name).GetNumbers();
+                if (values.Length == 0) throw new Exception($"The element value does not contain numbers: {name}");
+                Assert.IsTrue(values[0] >= min);
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 对元素中包含的数值进行小于断言
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        [Obsolete]
+        public virtual T AssertLessThan(string name, double value)
+        {
+            TrackAssertion("AssertLessThan", name);
+            IfAuto(() =>
+            {
+                double[] values = GetValue(name).GetNumbers();
+                if (values.Length == 0) throw new Exception($"The element value does not contain numbers: {name}");
+                Assert.IsTrue(values[0] < value);
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 对元素中包含的数值进行大于断言
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public virtual T AssertGreaterThan(string name, double value)
+        {
+            TrackAssertion("AssertGreaterThan", name);
+            IfAuto(() =>
+            {
+                double[] values = GetValue(name).GetNumbers();
+                if (values.Length == 0) throw new Exception($"The element value does not contain numbers: {name}");
+                Assert.IsTrue(values[0] > value);
+            });
+            return this as T;
+        }
+
+        //public virtual T AssertNumber(string name, string rangeExpression)
+        //{
+        //    TrackAssertion("AssertNumber", name);
+        //    IfAuto(() =>
+        //    {
+        //        double[] values = GetValue(name).GetNumbers();
+        //        string[] ranges = rangeExpression.Split(',');
+        //        bool result = true;
+        //        foreach (var range in ranges)
+        //        {
+        //            string[] numberStrings = range.Trim().Split(',');
+        //            if (numberStrings.Length == 1)
+        //            {
+
+        //            }
+        //            double min = 
+        //        }
+        //    });
+
+        //}
+
+        /// <summary>
+        /// 断言指定名称对应的元素内容包含所有指定文本
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        public virtual T AssertContains(string name, params string[] values)
+        {
+            TrackAssertion("AssertContains", name, string.Join(", ", values));
+            IfAuto(() =>
+            {
+                IWebElement element = Item(name);
+                string text = element.GetDeepText();
+                Assert.IsTrue(text.ContainsAll(values));
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 断言指定名称对应的元素内容不包含所有指定文本
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        public virtual T AssertNotContains(string name, params string[] values)
+        {
+            TrackAssertion("AssertNotContains", name, string.Join(", ", values));
+            IfAuto(() =>
+            {
+                IWebElement element = Item(name);
+                string text = element.GetDeepText();
+                Assert.IsTrue(!text.ContainsAny(values));
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 断言指定名称对应的元素内容包含指定的任意一个文本
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        public virtual T AssertContainsAny(string name, params string[] values)
+        {
+            TrackAssertion("AssertContainsAny", name, string.Join(", ", values));
+            IfAuto(() =>
+            {
+                IWebElement element = Item(name);
+                string text = element.GetDeepText();
+                Assert.IsTrue(text.ContainsAny(values));
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 对指定名称对应的元素内容进行正则表达式断言
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="pattern"></param>
+        /// <returns></returns>
+        public virtual T AssertMatches(string name, string pattern)
+        {
+            TrackAssertion("AssertMatches", name, pattern);
+            IfAuto(() =>
+            {
+                IWebElement element = Item(name);
+                string text = element.GetDeepText();
+                Assert.IsTrue(Regex.IsMatch(text, pattern));
+            });
+            return this as T;
+        }
+
+        /// <summary>
+        /// 断言元素值或文本中包含的日期时间是否在指定<see cref="DateTime"/>之前
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="dateTime"></param>
+        /// <param name="sourceDateTimeFormat"></param>
+        /// <returns></returns>
+        public virtual T AssertBefore(string name, DateTime dateTime, string sourceDateTimeFormat)
+        {
+            TrackAssertion("AssertBefore", name, dateTime.ToString("yyyy-MM-dd hh:mm:ss"));
+            IfAuto(() =>
+            {
+                IWebElement element = Item(name);
+                string text = element.GetDeepText() ?? element.GetValue();
+                string pattern = sourceDateTimeFormat
+                                .Replace("yyyy", @"\d{4}")
+                                .Replace("MM", @"\d{2}")
+                                .Replace("dd", @"\d{2}")
+                                .Replace("hh", @"\d{2}")
+                                .Replace("mm", @"\d{2}")
+                                .Replace("ss", @"\d{2}");
+                DateTime dt = DateTime.Parse(Regex.Match(text, pattern).Value);
+                Assert.IsTrue(dt < dateTime);
+            });
+            return this as T;
+        }
+
+        #endregion
+
+        #endregion Public Methods
+
+        #region Protected Methods
+
+        /// <summary>
+        /// 如果未能找到指定标记则抛出异常
+        /// </summary>
+        /// <param name="markName"></param>
+        protected void ThrowIfMarkNotFound(string markName)
+        {
+            if (!Elements.ContainsKey(markName))
+            {
+                throw new Exception($"{EnvManager.MarkPrefix}-{markName} cannot be found in template {Name}");
+            }
+        }
+
+        /// <summary>
+        /// 跟踪测试行为
+        /// </summary>
+        /// <param name="cmd"></param>
+        /// <param name="args"></param>
+        protected void TrackAction(string cmd, params object[] args)
+        {
+            Tracker.Log(TrackTag.Action, CommandDescriptions.Format(cmd, args));
+        }
+
+        /// <summary>
+        /// 跟踪校验
+        /// </summary>
+        /// <param name="cmd"></param>
+        /// <param name="args"></param>
+        protected void TrackAssertion(string cmd, params object[] args)
+        {
+            Tracker.Log(TrackTag.Assert, CommandDescriptions.Format(cmd, args));
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private RetryingElementSolutionLocator GetSolutionLocator()
+        {
+            ISearchContext self = Selenium.Driver;
+            try
+            {
+                self = new RetryingElementSolutionLocator(Selenium.CurrentContext).LocateElement(Locators);
+            }
+            catch
+            {
+
+            }
+            return self.RetryingSolutionLocator();
+        }
+
+        /// <summary>
+        /// 自动化模式下运行<see cref="Action"/>
+        /// </summary>
+        /// <param name="action"></param>
+        protected void IfAuto(Action action)
+        {
+            if (EnvManager.Auto)
+            {
+                action?.Invoke();
+            }
+        }
+
+        #endregion
+
+        #region Fields
+
+        private List<object> commandParameters = new List<object>(); // 存储临时的命令参数
+
+        #endregion Fields
+    }
+}

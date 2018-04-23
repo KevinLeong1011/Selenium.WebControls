@@ -1,0 +1,83 @@
+﻿{
+   "Click": "单击{0}",
+   "RightClick": "右键{0}",
+   "Input": "输入{0}：{1}",
+   "DoubleClick": "双击{0}",
+   "ClickLink": "单击链接{0}",
+   "ClearValue": "清空输入框“{0}”",
+   "AssertExistItem": "{0}中存在{1}",
+   "ClickItemByText": "在{0}中点击{1}",
+   "MouseOver": "鼠标置于{0}之上，悬停{1}秒",
+   "DragDrop": "将{0}拖至{1}",
+   "DragDropToAnotherControl": "请描述一下",
+
+   "AssertElementExist": "{0}应该存在",
+   "AssertElementNotExist": "{0}应该不存在",
+   "AssertElementNotContains": "{0}不应该包含这些值：{1}",
+
+   "AssertElementsAllContains": "所有{0}均包含内容：{1}",
+   "AssertElementsAllContainsAny": "所有{0}均包含其中某些内容：{1}",
+
+   "AssertContainsAll": "所有{0}均包含：{1}",
+   "AssertContainsAny": "所有{0}均包含其中某些内容：{1}",
+
+   "AssertTextEquals": "{0}的文本应显示为{1}",
+   "AssertTextNotEquals": "{0}的文本不应显示为{1}",
+   "AssertValueEquals": "{0}的值应显示为{1}",
+   "AssertValueNotEquals": "{0}的值不应为{1}",
+
+   "AssertTextContains": "{0}的文本应包含：{1}",
+   "AssertTextNotContains": "{0}的文本不应包含：{1}",
+   "AssertValueContains": "{0}的值应包含：{1}",
+   "AssertValueNotContains": "{0}的值不应包含：{1}",
+
+   "AssertVisible": "“{0}”正常显示",
+   "AssertInvisible": "“{0}”不可见",
+   "AssertEditable": "“{0}”可编辑",
+   "AssertEnabled": "{0}可操作",
+   "AssertDisabled": "“{0}”不可操作",
+   "AssertReadonly": "{0}只读",
+   "AssertTextMatches": "{0}的文本应该能匹配正则表达式：{1}",
+   "AssertValueMatches": "{0}的值应该能匹配正则表达式：{1}",
+   "AssertTextWithin": "{0}的文本内容属于序列：{1}",
+   "AssertValueWithin": "{0}的值属于序列：{1}",
+   "AssertTextNotIn": "{0}的文本不在序列之中：{1}",
+   "AssertValueNotIn": "{0}的值不在序列之中：{1}",
+
+   "AssertElementsAtLeast": "{0}至少有{1}个",
+   "AssertElementsAtMost": "{0}最多有{1}个",
+   "AssertElementsMoreThan": "{0}数量应大于{1}",
+   "AssertELementsLessThan": "{0}数量应小于{1}",
+   "AssertElementsCountBetween": "{0}的数量应在{1}到{2}之间",
+
+   "AssertMoreThan": "{0}数量应大于{1}",
+   "AssertLessThan": "{0}的数量应少于{1}",
+   "AssertAtLeast": "{0}数量至少为{1}",
+   "AssertAtMost": "{0}数量最多为{1}",
+   "AssertCountBetween": "{0}的数量在{1}和{2}之间",
+
+   "AssertElementNumberAtLeast": "{0}至少为{1}",
+   "AssertElementNumberAtMost": "{0}最多为{1}",
+   "AssertElementNumberMoreThan": "{0}应大于{1}",
+   "AssertElementNumberLessThan": "{0}应小于{1}",
+   "AssertElementNumberBetween": "{0}应在{1}到{2}之间",
+
+   "AssertElementsOneContains": "{0}中至少一项包含内容：{1}",
+   "AssertElementsOneEquals": "{0}中至少一项为{1}",
+   "AssertElementsOneStartWith": "{0}至少一项以{1}开头",
+   "AssertElementsOneEndWith": "{0}至少一项以{1}结尾",
+
+   "AssertTableHasData": "表中应包含符合条件“{0}”的数据",
+   "AssertTableHasNoData": "表中应没有数据符合条件：{0}",
+   "AssertTableHasColumns": "表中应包含列：{0}",
+   "AssertTableSortBy": "表中数据排序规则应该是：{0}",
+
+   "AssertTimeBefore": "时间应该早于{0}",
+   "AssertTimeAfter": "时间应晚于{1}",
+   "AssertTimeBetween": "时间应该在{0}到{1}之间",
+
+   "TableSelectDataByIndex": "从数据表选择第{0}条数据",
+   "TableSelectDataByFilter": "从数据表中选择{1}条符合条件“{0}”的数据",
+   "TableSelectAllDataByFilter": "从数据表中选择所有符合条件“{0}”的数据",
+   "TableClickCell": "从表中找到符合条件“{0}”的数据，并点击{1}"
+}

@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net45;netcoreapp2.0</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Copyright>copyright Kevin</Copyright>
+    <Authors>Kevin Leong</Authors>
+    <Company>KS</Company>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp2.0|AnyCPU'">
+    <DocumentationFile>bin\Debug\netcoreapp2.0\Selenium.WebControls.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netcoreapp2.0|AnyCPU'">
+    <DocumentationFile>bin\Release\netcoreapp2.0\Selenium.WebControls.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net45|AnyCPU'">
+    <DocumentationFile>bin\Debug\net45\Selenium.WebControls.xml</DocumentationFile>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net45|AnyCPU'">
+    <DocumentationFile>bin\Release\net45\Selenium.WebControls.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Autofac" Version="4.6.2" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.7.2" />
+    <PackageReference Include="log4net" Version="2.0.8" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="Selenium.Support" Version="3.11.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Dev.Utils\Dev.Utils\Dev.Utils.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)|$(Platform)'=='net45|AnyCPU'">
+    <Reference Include="System.Data.DataSetExtensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Configs\appconfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Configs\CommandDescription-cn.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Configs\log4net.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
