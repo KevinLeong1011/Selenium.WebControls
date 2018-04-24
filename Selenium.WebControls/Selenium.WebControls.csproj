@@ -39,7 +39,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Dev.Utils\Dev.Utils\Dev.Utils.csproj" />
+    <ProjectReference Include="..\Dev.Utils\Dev.Utils.csproj" />
   </ItemGroup>
 
   <ItemGroup>

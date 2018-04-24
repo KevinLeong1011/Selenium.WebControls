@@ -15,7 +15,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Selenium.WebControls.Locali
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Selenium.WebControls.Test", "Selenium.WebControls.Test\Selenium.WebControls.Test.csproj", "{9A1A4DCF-EF04-40AE-9456-3F3A27347A40}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dev.Utils", "Dev.Utils\Dev.Utils\Dev.Utils.csproj", "{EDA172C1-522F-4992-9940-F9F4FF780825}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dev.Utils", "Dev.Utils\Dev.Utils.csproj", "{66B24284-4895-4CF4-9213-1FD4179A2A2A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,10 +47,10 @@ Global
 		{9A1A4DCF-EF04-40AE-9456-3F3A27347A40}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9A1A4DCF-EF04-40AE-9456-3F3A27347A40}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9A1A4DCF-EF04-40AE-9456-3F3A27347A40}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EDA172C1-522F-4992-9940-F9F4FF780825}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EDA172C1-522F-4992-9940-F9F4FF780825}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EDA172C1-522F-4992-9940-F9F4FF780825}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EDA172C1-522F-4992-9940-F9F4FF780825}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66B24284-4895-4CF4-9213-1FD4179A2A2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66B24284-4895-4CF4-9213-1FD4179A2A2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66B24284-4895-4CF4-9213-1FD4179A2A2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66B24284-4895-4CF4-9213-1FD4179A2A2A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
