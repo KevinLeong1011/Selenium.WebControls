@@ -90,10 +90,6 @@ namespace Selenium.WebControls
                     try
                     {
                         var elements = SearchContext.FindElements(by);
-                        if (elements.Count == 1)
-                        {
-                            return elements[0];
-                        }
                         var displayedEles = elements.Where(x => x.Displayed);
                         if (displayedEles.Count() == 1)
                         {

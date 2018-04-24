@@ -34,12 +34,12 @@
     <PackageReference Include="Selenium.Support" Version="3.11.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\Dev.Utils\Dev.Utils\Dev.Utils.csproj" />
-  </ItemGroup>
-
   <ItemGroup Condition="'$(TargetFramework)|$(Platform)'=='net45|AnyCPU'">
     <Reference Include="System.Data.DataSetExtensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dev.Utils\Dev.Utils\Dev.Utils.csproj" />
   </ItemGroup>
 
   <ItemGroup>

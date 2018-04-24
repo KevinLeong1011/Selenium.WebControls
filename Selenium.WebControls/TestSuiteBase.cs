@@ -81,10 +81,7 @@ namespace Selenium.WebControls
             Tracker.Log(TrackTag.Case, caseName);
             //try
             //{
-                if (EnvManager.Auto)
-                {
                     action?.Invoke(Selenium);
-                }
             //}
             //catch (Exception ex)
             //{

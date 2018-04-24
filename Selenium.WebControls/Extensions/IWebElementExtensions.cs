@@ -69,7 +69,7 @@ namespace Selenium.WebControls.Extensions
         /// <returns></returns>
         public static bool HasContent(this IWebElement element, params string[] contents)
         {
-            string html = element.Text;
+            string html = element.Text.Default(element.GetValue());
             foreach (string content in contents)
             {
                 if (!html.Contains(content)) return false;
@@ -134,6 +134,30 @@ namespace Selenium.WebControls.Extensions
                 if (!attr.Contains(cls)) return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// 勾选元素复选框
+        /// </summary>
+        /// <param name="element"></param>
+        public static void Tick(this IWebElement element)
+        {
+            if (element.TagName.ToUpper() == "INPUT" && element.GetAttribute("type").ToLower() == "checkbox")
+            {
+                if (!element.Selected) element.Click();
+            }
+        }
+
+        /// <summary>
+        /// 取消勾选元素复选框
+        /// </summary>
+        /// <param name="element"></param>
+        public static void Untick(this IWebElement element)
+        {
+            if (element.TagName.ToUpper() == "INPUT" && element.GetAttribute("type").ToLower() == "checkbox")
+            {
+                if (element.Selected) element.Click();
+            }
         }
     }
 }

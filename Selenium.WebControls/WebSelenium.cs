@@ -125,29 +125,23 @@ namespace Selenium.WebControls
         public WebSelenium Do<TAction>(params object[] args)
             where TAction : UserAction
         {
-            TAction action = Activator.CreateInstance(typeof(TAction), this, args) as TAction;
-            Tracker.Log(TrackTag.Action, action.Description);
-            if (EnvManager.Auto)
-            {
-                action.Run();
-            }
-            Tracker.Log(TrackTag.UserEnd, "");
-            return this;
+            List<object> list = new List<object> { this };
+            list.AddRange(args);
+            TAction action = Activator.CreateInstance(typeof(TAction), list.ToArray()) as TAction;
+            return Do(action.Description, () => action.Run());
         }
 
         /// <summary>
-        /// 执行测试行为
+        /// 执行操作
         /// </summary>
         /// <param name="description">行为描述</param>
         /// <param name="action"></param>
         /// <returns></returns>
         public WebSelenium Do(string description, Action action)
         {
-            Tracker.Log(TrackTag.Action, description);
-            if (EnvManager.Auto)
-            {
-                action?.Invoke();
-            }
+            Tracker.Log(TrackTag.UserActionStart, description);
+            action?.Invoke();
+            Tracker.Log(TrackTag.UserEnd, "");
             return this;
         }
 

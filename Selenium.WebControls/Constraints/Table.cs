@@ -131,11 +131,11 @@ namespace Selenium.WebControls.Constraints
         /// </summary>
         /// <param name="condition"></param>
         /// <returns></returns>
-        public static Func<AssertContext<DataTable>,bool> AllMatch(string condition)
+        public static Func<AssertContext<DataTable>,bool> AllMatches(string condition)
         {
             return delegate (AssertContext<DataTable> context)
             {
-                context.Command += "AllMatch";
+                context.Command += "AllMatches";
                 context.Parameters.Add(condition);
                 if (!EnvManager.Auto) return true;
                 var table = context.Data;

@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Threading;
 
 namespace Selenium.WebControls.Controls
@@ -165,6 +166,17 @@ namespace Selenium.WebControls.Controls
         }
 
         /// <summary>
+        /// 使用模板处理模板中给定名称的元素
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="tplName"></param>
+        /// <returns></returns>
+        public WebControl Handle(string name, string tplName)
+        {
+            return Handle<WebControl>(name, tplName);
+        }
+
+        /// <summary>
         /// 
         /// </summary>
         /// <typeparam name="TControl"></typeparam>
@@ -189,6 +201,19 @@ namespace Selenium.WebControls.Controls
             control.Locators.AddRange(mark.Locators);
             control.SetSearchContext(SolutionLocator.LocateElement(control.Locators));
             return control;
+        }
+
+        /// <summary>
+        /// 处理模板中的组件标记
+        /// </summary>
+        /// <typeparam name="TControl"></typeparam>
+        /// <param name="name"></param>
+        /// <param name="action"></param>
+        /// <returns></returns>
+        public T Handle<TControl>(string name, Action<TControl> action)
+            where TControl : WebControl<TControl>
+        {
+            return Handle<TControl>(name, name, action);
         }
 
         /// <summary>
@@ -233,11 +258,9 @@ namespace Selenium.WebControls.Controls
         public T Do(string description, Action<T> action)
         {
             T @this = this as T;
-            Tracker.Log(TrackTag.Action, description);
-            if (EnvManager.Auto)
-            {
-                action?.Invoke(@this);
-            }
+            Tracker.Log(TrackTag.UserActionStart, description);
+            action?.Invoke(@this);
+            Tracker.Log(TrackTag.UserEnd, "");
             return @this;
         }
 
@@ -250,11 +273,9 @@ namespace Selenium.WebControls.Controls
         public T Check(string description, Action<T> check)
         {
             T @this = this as T;
-            Tracker.Log(TrackTag.Assert, description);
-            if (EnvManager.Auto)
-            {
-                check?.Invoke(@this);
-            }
+            Tracker.Log(TrackTag.UserAssertStart, description);
+            check?.Invoke(@this);
+            Tracker.Log(TrackTag.UserEnd,"");
             return @this;
         }
 
@@ -275,10 +296,11 @@ namespace Selenium.WebControls.Controls
             string[] markArray = mark.Name.Split(new char[] { '-' }, StringSplitOptions.RemoveEmptyEntries);
 
             var locator = this.SolutionLocator;
+            if (markArray.Length < 2) return locator.LocateElement(mark.ClusterLocators);
             IWebElement result = null;
             foreach (string markName in markArray)
             {
-                Mark m = Marks.GetValueOrDefault(markName);
+                Mark m = Marks.Where(x => x.Value.Name == markName).FirstOrDefault().Value;
                 if (m == null) throw new Exception($"Please make sure you have marked an element with \"{EnvManager.MarkPrefix}-{markName}\".");
                 result = locator.LocateElement(m.Locators);
                 locator = result.RetryingSolutionLocator();
@@ -298,28 +320,29 @@ namespace Selenium.WebControls.Controls
             if (mark == null) return null;
             string[] markArray = mark.Name.Split(new char[] { '-' }, StringSplitOptions.RemoveEmptyEntries);
 
-            List<IWebElement> list = new List<IWebElement>();
-            RetryingElementSolutionLocator locator = this.SolutionLocator;
-            list.Add(locator.LocateElement(Locators));
+
+            if (markArray.Length < 2) return SolutionLocator.LocateElements(mark.ClusterLocators).ToList();
+            List<IWebElement> elements = new List<IWebElement>();
             foreach (string markName in markArray)
             {
-                list.Clear();
-                Mark m = Marks.GetValueOrDefault(name);
+                List<IWebElement> temp = new List<IWebElement>();
+                Mark m = Marks.Where(x => x.Value.Name == markName).FirstOrDefault().Value;
                 if (m == null) throw new Exception($"Please make sure you have marked an element with \"{EnvManager.MarkPrefix}-{markName}\".");
-                if (list.Count == 0)
+                if (elements.Count == 0)
                 {
-                    list.AddRange(locator.LocateElements(m.Locators));
+                    elements.AddRange(SolutionLocator.LocateElements(m.ClusterLocators));
                 }
                 else
                 {
-                    foreach (var element in list)
+                    foreach (var element in elements)
                     {
-                        var elements = element.RetryingSolutionLocator().LocateElements(m.Locators);
-                        list.AddRange(elements);
+                        var eles = element.RetryingSolutionLocator().LocateElements(m.ClusterLocators);
+                        elements.AddRange(eles);
+                        elements.Remove(element);
                     }
                 }
             }
-            return list;
+            return elements;
         }
 
         ///// <summary>
@@ -513,22 +536,44 @@ namespace Selenium.WebControls.Controls
         /// 点击指定名称的元素集中包含相应内容的元素
         /// </summary>
         /// <param name="name"></param>
-        /// <param name="keywords"></param>
+        /// <param name="keyword"></param>
+        /// <param name="extraKeywords"></param>
         /// <returns></returns>
-        public T ClickItem(string name, params string[] keywords)
+        public T ClickItem(string name, string keyword, params string[] extraKeywords)
         {
-            TrackAction("ClickItemByText", name, string.Join(", ", keywords));
-            IfAuto(() =>
+            TrackAction("ClickItemByText", name, keyword + (extraKeywords.Length > 0 ? ", " : "") + string.Join(", ", extraKeywords));
+            if (!EnvManager.Auto) return this as T;
+            var elements = FindElements(name);
+            foreach (var element in elements)
             {
-                var elements = FindElements(name);
-                foreach (var element in elements)
+                if (element.HasContent(keyword) && element.HasContent(extraKeywords))
                 {
-                    if (element.HasContent(keywords))
-                    {
-                        element.Click();
-                    }
+                    element.Click();
+                    break;
                 }
-            });
+            }
+            return this as T;
+        }
+
+        /// <summary>
+        /// 点击所有文本或值包含关键字的元素
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="keyword"></param>
+        /// <param name="extraKeywords"></param>
+        /// <returns></returns>
+        public T ClickItems(string name, string keyword, params string[] extraKeywords)
+        {
+            TrackAction("ClickItemsByText", name, keyword + (extraKeywords.Length > 0 ? ", " : "") + string.Join(", ", extraKeywords));
+            if (!EnvManager.Auto) return this as T;
+            var elements = FindElements(name);
+            foreach (var element in elements)
+            {
+                if (element.HasContent(keyword) && element.HasContent(extraKeywords))
+                {
+                    element.Click();
+                }
+            }
             return this as T;
         }
 
@@ -543,13 +588,34 @@ namespace Selenium.WebControls.Controls
             TrackAction("ClickItemByIndex", name, index);
             if (!EnvManager.Auto) return this as T;
             var elements = FindElements(name);
-            if(elements.Count == 0 || index > elements.Count)
+            if (elements.Count == 0 || index > elements.Count)
             {
                 // TODO: 输入Warning日志
                 return this as T;
             }
             elements[Math.Max(1, index)].Click();
             return this as T;
+        }
+
+        /// <summary>
+        /// 找出所有文本或值包含给定关键字的元素
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="keyword"></param>
+        /// <param name="extraKeywords"></param>
+        /// <returns></returns>
+        public IEnumerable<IWebElement> FindItems(string name, string keyword, params string[] extraKeywords)
+        {
+            if (!EnvManager.Auto) yield break;
+            var elements = FindElements(name);
+            foreach (var element in elements)
+            {
+                if (element.HasContent(keyword) && element.HasContent(extraKeywords))
+                {
+                    yield return element;
+                }
+            }
+            yield break;
         }
 
         /// <summary>
@@ -597,12 +663,10 @@ namespace Selenium.WebControls.Controls
         /// <returns></returns>
         public virtual T DragDropToOffset(string sourceName, int x, int y)
         {
-            //TrackAction("DragDropToOffset", sourceName, x, y);
-            IfAuto(() =>
-            {
-                IWebElement source = FindElement(sourceName);
-                new Actions(Selenium.Driver).DragAndDropToOffset(source, x, y);
-            });
+            TrackAction("DragDropToOffset", sourceName, x, y);
+            if (!EnvManager.Auto) return this as T;
+            IWebElement source = FindElement(sourceName);
+            new Actions(Selenium.Driver).DragAndDropToOffset(source, x, y);
             return this as T;
         }
 
@@ -616,12 +680,44 @@ namespace Selenium.WebControls.Controls
         public T DragDropToAnotherControl(string sourceName, string controlName, string targetName)
         {
             TrackAction("DragDropToAnotherControl", sourceName, controlName, targetName);
-            IfAuto(() =>
+            if (!EnvManager.Auto) return this as T;
+            IWebElement source = FindElement(sourceName);
+            IWebElement target = Selenium.Handle<WebControl>(controlName).FindElement(targetName);
+            new Actions(Selenium.Driver).DragAndDrop(source, target);
+            return this as T;
+        }
+
+        /// <summary>
+        /// 勾选给定名称的元素
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public T Tick(string name)
+        {
+            TrackAction("Tick", name);
+            if (!EnvManager.Auto) return this as T;
+            IWebElement element = FindElement(name);
+            if (element.TagName.ToUpper() == "INPUT" && element.GetAttribute("type").ToLower() == "checkbox")
             {
-                IWebElement source = FindElement(sourceName);
-                IWebElement target = Selenium.Handle<WebControl>(controlName).FindElement(targetName);
-                new Actions(Selenium.Driver).DragAndDrop(source, target);
-            });
+                if (!element.Selected) element.Click();
+            }
+            return this as T;
+        }
+
+        /// <summary>
+        /// 取消勾选给定名称的元素
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public T Untick(string name)
+        {
+            TrackAction("Tick", name);
+            if (!EnvManager.Auto) return this as T;
+            IWebElement element = FindElement(name);
+            if (element.TagName.ToUpper() == "INPUT" && element.GetAttribute("type").ToLower() == "checkbox")
+            {
+                if (element.Selected) element.Click();
+            }
             return this as T;
         }
 
@@ -782,6 +878,17 @@ namespace Selenium.WebControls.Controls
                 Assert.Fail(context.Message);
             }
             TrackAssertion(context.Command, context.Parameters.ToArray());
+            return this as T;
+        }
+
+        /// <summary>
+        /// 等待n秒
+        /// </summary>
+        /// <param name="n"></param>
+        /// <returns></returns>
+        public virtual T Wait(int n)
+        {
+            Thread.Sleep(n * 1000);
             return this as T;
         }
 

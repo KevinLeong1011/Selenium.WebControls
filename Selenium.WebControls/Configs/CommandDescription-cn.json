@@ -7,9 +7,12 @@
    "ClearValue": "清空输入框“{0}”",
    "AssertExistItem": "{0}中存在{1}",
    "ClickItemByText": "在{0}中点击{1}",
+   "ClickItemsByText": "在{0}中点击所有包含关键字“{1}”的项",
    "MouseOver": "鼠标置于{0}之上，悬停{1}秒",
    "DragDrop": "将{0}拖至{1}",
+   "DragDropToOffset": "拖动元素，偏移量为：{0},{1}",
    "DragDropToAnotherControl": "请描述一下",
+   "Tick": "勾选{0}",
 
    "AssertElementExist": "{0}应该存在",
    "AssertElementNotExist": "{0}应该不存在",
@@ -71,6 +74,7 @@
    "AssertTableHasNoData": "表中应没有数据符合条件：{0}",
    "AssertTableHasColumns": "表中应包含列：{0}",
    "AssertTableSortBy": "表中数据排序规则应该是：{0}",
+   "AssertTableAllMatches": "表中数据需要都满足条件：{0}",
 
    "AssertTimeBefore": "时间应该早于{0}",
    "AssertTimeAfter": "时间应晚于{1}",

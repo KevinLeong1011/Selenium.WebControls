@@ -70,7 +70,61 @@ namespace Selenium.WebControls.Controls
             {
                 int index = table.Rows.IndexOf(row);
                 int colIndex = table.Columns.IndexOf(colName);
-                SolutionLocator.LocateElement(new By[] { By.CssSelector($"table tbody tr:nth-child({Math.Max(0, index)}) td:nth-child({colIndex + 1})") }).Click();
+                SolutionLocator.LocateElement(new By[] { By.CssSelector($"table tbody tr:nth-child({index + 1}) td:nth-child({colIndex + 1})") }).Click();
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// 对于表中符合条件的数据，勾选给定字段
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <param name="fields"></param>
+        /// <returns></returns>
+        public WebTable Tick(string filter, params string[] fields)
+        {
+            TrackAction("TableTickFields", filter, string.Join(", ", fields));
+            if (!EnvManager.Auto) return this;
+            DataRow[] rows = FindData(filter);
+            List<int> colIndexList = new List<int>();
+            foreach (string field in fields)
+            {
+                colIndexList.Add(table.Columns.IndexOf(field) + 1);
+            }
+            foreach (var row in rows)
+            {
+                int index = table.Rows.IndexOf(row);
+                foreach (int colIndex in colIndexList)
+                {
+                    SolutionLocator.LocateElement(new By[] { By.CssSelector($"table tbody tr:nth-child({index + 1}) td:nth-child({colIndex})") }).Tick();
+                }
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// 对于表中符合条件的数据，不勾选给定字段
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <param name="fields"></param>
+        /// <returns></returns>
+        public WebTable Untick(string filter, params string[] fields)
+        {
+            TrackAction("TableTickFields", filter, string.Join(", ", fields));
+            if (!EnvManager.Auto) return this;
+            DataRow[] rows = FindData(filter);
+            List<int> colIndexList = new List<int>();
+            foreach (string field in fields)
+            {
+                colIndexList.Add(table.Columns.IndexOf(field) + 1);
+            }
+            foreach (var row in rows)
+            {
+                int index = table.Rows.IndexOf(row);
+                foreach (int colIndex in colIndexList)
+                {
+                    SolutionLocator.LocateElement(new By[] { By.CssSelector($"table tbody tr:nth-child({index + 1}) td:nth-child({colIndex})") }).Untick();
+                }
             }
             return this;
         }
@@ -175,6 +229,23 @@ namespace Selenium.WebControls.Controls
         }
 
         /// <summary>
+        /// 从表中找出符合给定条件的数据的索引，从1开始
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        public virtual int FindIndex(string filter)
+        {
+            if (!EnvManager.Auto) return -1;
+            DataTable table = GetPageData();
+            DataRow[] rows = table.Select(filter);
+            if (rows.Length > 0)
+            {
+                return table.Rows.IndexOf(rows[0]) + 1;
+            }
+            return -1;
+        }
+
+        /// <summary>
         /// 确保数据符合给定的规则
         /// </summary>
         /// <param name="validate"></param>
@@ -191,6 +262,7 @@ namespace Selenium.WebControls.Controls
             {
                 Assert.Fail(context.Message);
             }
+            TrackAssertion(context.Command, context.Parameters.ToArray());
             return this;
         }
 
@@ -211,6 +283,7 @@ namespace Selenium.WebControls.Controls
             {
                 Assert.Fail(context.Message);
             }
+            TrackAssertion(context.Command, context.Parameters.ToArray());
             return this;
         }
 
